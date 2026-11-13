@@ -61,14 +61,29 @@ FROM   finpres f
            LEFT  JOIN hssclapr cp  ON cp.nnumeclapr = f.nnumeclapr
            LEFT  JOIN hssespre ep  ON ep.nnumepres  = f.nnumepres
            LEFT  JOIN hssespec e   ON e.nnumeespec  = ep.nnumeespec AND e.csituespec = 'A'
-           LEFT JOIN segusua an ON an.nnumeusua = f.nancmusua
+           LEFT  JOIN segusua an   ON an.nnumeusua  = f.nancmusua
+
+-- Endereço: prioridade tipo Atendimento ('A'); fallback principal quando não há tipo 'A'
            LEFT  JOIN (
     SELECT ee.nnumepess, ee.ctipoendp, ee.ccidaendp, ee.cestaendp, ee.nnumetlogr,
            ee.cendeendp, ee.cnumeendp, ee.cbairendp, ee.ccompendp
     FROM   hssendp ee
     WHERE  ee.cstatendp = 'A'
-      AND (ee.ctipoendp = 'A' OR ee.cprinendp = 'S')
+      AND ee.ctipoendp = 'A'
+    UNION ALL
+    SELECT ee.nnumepess, ee.ctipoendp, ee.ccidaendp, ee.cestaendp, ee.nnumetlogr,
+           ee.cendeendp, ee.cnumeendp, ee.cbairendp, ee.ccompendp
+    FROM   hssendp ee
+    WHERE  ee.cstatendp = 'A'
+      AND ee.cprinendp = 'S'
+      AND NOT EXISTS (
+        SELECT 1 FROM hssendp ee2
+        WHERE ee2.nnumepess = ee.nnumepess
+          AND ee2.ctipoendp = 'A'
+          AND ee2.cstatendp = 'A'
+    )
 ) en ON en.nnumepess = f.nnumepess
+
            LEFT  JOIN (
     SELECT /*+ NO_MERGE MATERIALIZE */ h.nnumepess, MAX(h.cddd_fonp) AS ddd, MAX(h.cfonefonp) AS numero
     FROM   hssfonp h
@@ -78,89 +93,83 @@ FROM   finpres f
            LEFT  JOIN (
     SELECT /*+ NO_MERGE MATERIALIZE */ em.nnumepess, MAX(em.cmailemap) AS email
     FROM   hssemap em
-    WHERE  em.cstatemap='A' AND em.cprinemap='S'
+    WHERE  em.cstatemap = 'A' AND em.cprinemap = 'S'
     GROUP BY em.nnumepess
 ) email_pessoa ON email_pessoa.nnumepess = f.nnumepess
            LEFT  JOIN (
     SELECT /*+ NO_MERGE MATERIALIZE */ m.nnumepres,
                                        MAX(m.cnomeemapr) AS cnomeemapr, MAX(m.cdescemapr) AS cdescemapr,
                                        MAX(m.cprinemapr) AS cprinemapr, MAX(m.cemaiemapr) AS cemaiemapr
-    FROM hssemapr m GROUP BY m.nnumepres
+    FROM   hssemapr m
+    GROUP BY m.nnumepres
 ) mail ON mail.nnumepres = f.nnumepres
            LEFT  JOIN (
     SELECT /*+ NO_MERGE MATERIALIZE */ l.nnumepres, SUM(l.nvalolote) AS apresentado_ultimos12m
     FROM   hsslote l
-    WHERE  l.csitulote='F' AND l.dcomplote >= TRUNC(FIRST_DAY(ADD_MONTHS(SYSDATE,-24)))
+    WHERE  l.csitulote = 'F'
+      AND  l.dcomplote >= TRUNC(FIRST_DAY(ADD_MONTHS(SYSDATE, -24)))
     GROUP BY l.nnumepres
 ) vl ON vl.nnumepres = f.nnumepres
            LEFT  JOIN (
     SELECT /*+ NO_MERGE MATERIALIZE */ d.crefedocu, MAX(d.dprogdocu) AS ultimo_pgt
-    FROM findocu d GROUP BY d.crefedocu
+    FROM   findocu d
+    GROUP BY d.crefedocu
 ) upg ON upg.crefedocu = f.cnomepres
-WHERE ra.nnumeredea = :REDE
-  AND retorna_nome_grupo_prestador(f.cgruppres) = :grupo
-  AND f.nnumepres = :idprestador
-  AND f.nnumeclapr = :classificacao
-  AND en.ccidaendp = :cidade_prestador
-  AND ra.nnumeredea IN (
-    SELECT DISTINCT rpl.nnumeredea
-    FROM hssredpl rpl JOIN hssplan pln ON pln.nnumeplan = rpl.nnumeplan
-    WHERE pln.nnumeplan = :codplan
-)
-  AND ra.nnumeredea IN (
-    SELECT DISTINCT rpl.nnumeredea
-    FROM hssredpl rpl JOIN hssplan pln ON pln.nnumeplan = rpl.nnumeplan
-    WHERE pln.nnumeplan = :plano
+
+WHERE  ra.nnumeredea = :REDE
+  AND  retorna_nome_grupo_prestador(f.cgruppres) = :grupo
+  AND  f.nnumepres   = :prestador
+  AND  f.nnumeclapr  = :classificacao
+  AND  en.ccidaendp  = :cidade_prestador
+  AND  EXISTS (
+    SELECT 1
+    FROM   hssredpl rpl
+               JOIN   hssplan  pln ON pln.nnumeplan = rpl.nnumeplan
+    WHERE  rpl.nnumeredea = ra.nnumeredea
+      AND  pln.nnumeplan  = :plano
 )
 ORDER BY natureza_atend_rede
 
---FILTROS
 
---REDE
-SELECT NNUMEREDEA, CNOMEREDEA FROM HSSREDEA ORDER BY 2
+-- ============================================================
+-- FILTROS
+-- ============================================================
 
---GRUPO
-select cdispdomin, cdispdomin
-from hssdomin
-where 1=1
-  and ctipodomin='GRUPO_PRESTADOR'
-order by 1
+-- REDE
+SELECT nnumeredea, cnomeredea
+FROM hssredea
+ORDER BY 2
 
---PRESTADOR
-select nnumepres,cnomepres
-from finpres
-order by 2
+-- GRUPO
+SELECT cdispdomin, cdispdomin
+FROM hssdomin
+WHERE ctipodomin = 'GRUPO_PRESTADOR'
+ORDER BY 1
 
---CLASSIFICACAO
+-- PRESTADOR
+SELECT nnumepres, cnomepres
+FROM finpres
+ORDER BY 2
 
-select nnumeclapr, cdescclapr
-from hssclapr
-order by 2
+-- CLASSIFICACAO
+SELECT nnumeclapr, cdescclapr
+FROM hssclapr
+ORDER BY 2
 
---CCODIPLAN
-
-select distinct pl.nnumeplan,pl.ccodiplan
-from hssplan pl
-where 1=1
-  and pl.nnumeplan in (select distinct rpl.nnumeplan
-                       from hssredpl rpl
-                       where rpl.nnumeplan=pl.nnumeplan
+-- PLANO
+SELECT DISTINCT pl.nnumeplan,
+                pl.ccodiplan || ' - ' || pl.cdescplan AS plano
+FROM hssplan pl
+WHERE EXISTS (
+    SELECT 1 FROM hssredpl rpl
+    WHERE rpl.nnumeplan = pl.nnumeplan
 )
-order by 2
+ORDER BY 2
 
---PLANO
-
-select distinct pl.nnumeplan,pl.cdescplan
-from hssplan pl
-where 1=1
-  and pl.nnumeplan in (select distinct rpl.nnumeplan
-                       from hssredpl rpl
-                       where rpl.nnumeplan=pl.nnumeplan
+-- CIDADE PRESTADOR
+SELECT DISTINCT cnomecidad
+FROM hsscidad
+WHERE EXISTS (
+    SELECT 1 FROM hssendp e
+    WHERE e.ccidaendp = cnomecidad
 )
-order by 2
-
---CIDADE PRESTADOR
-
-select distinct cnomecidad
-from hsscidad
-where cnomecidad in ( select distinct e.ccidaendp from hssendp e)

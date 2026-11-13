@@ -9,7 +9,7 @@ O banco do Solus é **Oracle**, então as consultas usam a sintaxe dele (`DECODE
 | Arquivo | Descrição | Parâmetros |
 |---|---|---|
 | `REDE - CONSULTA DE REDE DE ATENDIMENTO ANALITICO C.CLIN v2.sql` | Rede de atendimento analítica: prestadores ativos na rede com especialidades, endereço, telefone, e-mail, produção dos últimos 6 meses (valor apresentado e quantidade de guias) e o corpo clínico vinculado a cada hospital. A operadora (Humana NE/SUL/SE) vem da `hssconf`. | `:GRUPO`: grupo do prestador |
-| `REDE - CONSULTA DE REDE DE ATENDIMENTO - ANALITICO.SQL` | Rede de atendimento analítica por rede: rede, especialidade, natureza e regime de atendimento, dados do prestador, endereço, telefone, e-mails, forma de contratação, analista responsável, valor apresentado e data do último pagamento. | `:REDE`, `:grupo`, `:idprestador`, `:classificacao`, `:cidade_prestador`, `:codplan`, `:plano` |
+| `REDE - CONSULTA DE REDE DE ATENDIMENTO - ANALITICO.SQL` | Rede de atendimento analítica por rede: rede, especialidade, natureza e regime de atendimento, dados do prestador, endereço, telefone, e-mails, forma de contratação, analista responsável, valor apresentado e data do último pagamento. | `:REDE`, `:grupo`, `:prestador`, `:classificacao`, `:cidade_prestador`, `:plano` |
 
 > Ao adicionar um novo `.sql`, inclua uma linha nesta tabela.
 
