@@ -6,7 +6,7 @@ SELECT DISTINCT
           END operadora
         FROM hssconf 
        WHERE ROWNUM = 1)                             AS OPERADORA,
-       DECODE(pr.cpwebprede,'S','Sim','N','Não')     AS PUBLICA_REDE,
+       DECODE(pr.cpwebprede,'S','Sim','N','NÃ£o')     AS PUBLICA_REDE,
        f.ccodipres                                   AS CODIGO_PRESTADOR,
        f.cpesspres                                   AS NATUREZA,
        NVL(f.ccgc_pres, f.ccpf_pres)                 AS CNPJ_CPF,
@@ -38,7 +38,7 @@ SELECT DISTINCT
        ) AS QTD_GUIAS_LOCALATEND6M,
 
        DECODE(en.ctipoendp,'A','Atendimento','D','Administrativo','R','Residencial','F','Faturamento',
-                           'C','Comercial','P','Correspondência','N','Nota fiscal','M','Atendimento domiciliar')
+                           'C','Comercial','P','CorrespondÃªncia','N','Nota fiscal','M','Atendimento domiciliar')
          AS TIPO_ENDERECO,
 
        fun_retornaDescricaoDominio('TIPO_TELEFONE_PESSOA', fo.ctipofonp) AS TIPO_TELEFONE,
@@ -54,7 +54,7 @@ SELECT DISTINCT
        co.nome_corpo_clinico,
        co.situacao_corpo_clinico,
        co.grupo_corpo_clinico,
-       co.classificação_corpo_clinico,
+       co.classificaÃ§Ã£o_corpo_clinico,
        co.cidade_corpo_clinico,
        co.estado_corpo_clinico,
        co.especialidade_corpo_clinico,
@@ -63,7 +63,7 @@ SELECT DISTINCT
        co.tipo_telefone_cc,
 
        DECODE(co.tipo_endereco_cc,'A','Atendimento','D','Administrativo','R','Residencial','F','Faturamento',
-                                 'C','Comercial','P','Correspondência','N','Nota fiscal','M','Atendimento domiciliar')
+                                 'C','Comercial','P','CorrespondÃªncia','N','Nota fiscal','M','Atendimento domiciliar')
          AS TIPO_ENDERECO_CC,
 
        (SELECT COUNT(1)
@@ -80,13 +80,13 @@ SELECT DISTINCT
 
   FROM finpres f,
        hssespre ep,
-       /* só colunas usadas */
+       /* sÃ³ colunas usadas */
        (SELECT nnumeespec, cnomeespec
           FROM hssespec
          WHERE csituespec = 'A') e,
 
-       -- Endereço do prestador principal:
-       -- prioridade: tipo Atendimento ('A'); fallback: endereço principal quando não há tipo 'A'
+       -- EndereÃ§o do prestador principal:
+       -- prioridade: tipo Atendimento ('A'); fallback: endereÃ§o principal quando nÃ£o hÃ¡ tipo 'A'
        (SELECT nnumepess, ctipoendp, ccidaendp, cestaendp
           FROM hssendp
          WHERE ctipoendp = 'A'
@@ -125,14 +125,14 @@ SELECT DISTINCT
                cc.cfantpres                     AS fantasia_corpo_clinico,
                retorna_situacao_prestador(cc.nnumepres)          AS situacao_corpo_clinico,
                retorna_nome_grupo_prestador(cc.cgruppres)        AS grupo_corpo_clinico,
-               cp.cdescclapr                    AS classificação_corpo_clinico,
+               cp.cdescclapr                    AS classificaÃ§Ã£o_corpo_clinico,
                en.ccidaendp                     AS cidade_corpo_clinico,
                en.cestaendp                     AS estado_corpo_clinico,
                (SELECT t.cdesctlogr
                   FROM hsstlogr t
                  WHERE t.nnumetlogr = en.nnumetlogr)             AS logradouro_corpo_clinico,
-               en.cendeendp                     AS endereço_corpo_clinico,
-               en.cnumeendp                     AS número_corpo_clinico,
+               en.cendeendp                     AS endereÃ§o_corpo_clinico,
+               en.cnumeendp                     AS nÃºmero_corpo_clinico,
                en.cbairendp                     AS bairro_corpo_clinico,
                en.ccompendp                     AS complemento_corpo_clinico,
                en.ctipoendp                     AS tipo_endereco_cc,
@@ -143,7 +143,7 @@ SELECT DISTINCT
                ep.cpublespre                    AS publica_corpo_clinico,
                c.cstatcclin                     AS status_corpo_clinico
           FROM
-               /* só colunas usadas nesta subquery */
+               /* sÃ³ colunas usadas nesta subquery */
                (SELECT nnumeespec, cnomeespec FROM hssespec) e,
                (SELECT nnumepres, nnumeespec, cpublespre FROM hssespre) ep,
                (SELECT nhosppres, nnumepres, NVL(cstatcclin,'I') cstatcclin FROM hsscclin) c,
@@ -153,8 +153,8 @@ SELECT DISTINCT
                   FROM finpres) cc,
                (SELECT nnumeclapr, cdescclapr FROM hssclapr) cp,
 
-               -- Endereço do corpo clínico:
-               -- mesma lógica: prioridade tipo 'A'; fallback principal
+               -- EndereÃ§o do corpo clÃ­nico:
+               -- mesma lÃ³gica: prioridade tipo 'A'; fallback principal
                (SELECT nnumepess, nnumetlogr, ccidaendp, cestaendp,
                        cendeendp, cnumeendp, cbairendp, ccompendp, ctipoendp
                   FROM hssendp
