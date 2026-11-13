@@ -12,7 +12,6 @@ vw_operadora AS (
 ),
 
 -- 2. FILTRO PRINCIPAL + REDE (explodido: 1 linha por prestador x rede)
---    SITUACAO calculada aqui, 1x por prestador, antes da explosão por rede
 vw_prestadores_base AS (
     SELECT /*+ MATERIALIZE */ DISTINCT
         rb.cnomeredea,
@@ -43,7 +42,7 @@ vw_prestadores_base AS (
                'Não identificado (' || f.ccredpres || ')'
         ) AS situacao,
         emp.nome_empresa_medica,
-        nvl(an.cncomusua,an.cnomeusua) AS analista_responsavel
+        nvl(an.cncomusua, an.cnomeusua) AS analista_responsavel
     FROM hssredea rb
              JOIN hssprede pr ON pr.nnumeredea = rb.nnumeredea
              JOIN finpres f   ON f.nnumepres = pr.nnumepres
@@ -61,7 +60,7 @@ vw_prestadores_base AS (
              )
         WHERE rn = 1
     ) emp ON emp.nnumepres = f.nnumepres
-    WHERE f.cgruppres = :GRUPO_PRESTADOR
+    WHERE f.cgruppres   = :GRUPO_PRESTADOR
       AND rb.nnumeredea = :REDE
 ),
 
@@ -73,7 +72,7 @@ vw_lote_6m AS (
     FROM hsslote l
     WHERE l.csitulote = 'F'
       AND l.dcomplote >= TRUNC(ADD_MONTHS(SYSDATE, -6), 'MM')
-      AND l.nnumepres IN (SELECT nnumepres FROM vw_prestadores_base)
+      AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepres = l.nnumepres)
     GROUP BY l.nnumepres
 ),
 vw_guia_exec_6m AS (
@@ -83,7 +82,7 @@ vw_guia_exec_6m AS (
     FROM hssguia g
     WHERE NVL(g.cstatguia, 'L') = 'L'
       AND g.demisguia >= TRUNC(ADD_MONTHS(SYSDATE, -6), 'MM')
-      AND g.nnumepres IN (SELECT nnumepres FROM vw_prestadores_base)
+      AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepres = g.nnumepres)
     GROUP BY g.nnumepres
 ),
 vw_guia_local_6m AS (
@@ -93,11 +92,11 @@ vw_guia_local_6m AS (
     FROM hssguia g
     WHERE NVL(g.cstatguia, 'L') = 'L'
       AND g.demisguia >= TRUNC(ADD_MONTHS(SYSDATE, -6), 'MM')
-      AND g.nlocapres IN (SELECT nnumepres FROM vw_prestadores_base)
+      AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepres = g.nlocapres)
     GROUP BY g.nlocapres
 ),
 
--- 4. DESDUPLICAÇÃO (1:1 por pessoa/prestador via MAX)
+-- 4. DESDUPLICAÇÃO (1:1 por pessoa/prestador)
 vw_telefone AS (
     SELECT
         nnumepess,
@@ -105,33 +104,64 @@ vw_telefone AS (
     FROM hssfonp
     WHERE cstatfonp = 'A'
       AND cprinfonp = 'S'
-      AND nnumepess IN (SELECT nnumepess FROM vw_prestadores_base)
+      AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepess = hssfonp.nnumepess)
     GROUP BY nnumepess
 ),
+
+-- Endereço do prestador principal:
+-- prioridade: tipo Atendimento ('A'); fallback: endereço principal quando não há tipo 'A'
 vw_endereco AS (
     SELECT
         en.nnumepess,
-        MAX(DECODE(en.ctipoendp,
-                   'A', 'Atendimento',
-                   'D', 'Administrativo',
-                   'R', 'Residencial',
-                   'F', 'Faturamento',
-                   'C', 'Comercial',
-                   'P', 'Correspondência',
-                   'N', 'Nota fiscal',
-                   'M', 'Atendimento domiciliar')) AS TIPO_ENDERECO,
-        MAX(en.ccidaendp) AS CIDADE,
-        MAX(en.cestaendp) AS ESTADO,
-        MAX(en.nnumetlogr) AS nnumetlogr,
-        MAX(en.cendeendp) AS ENDERECO,
-        MAX(en.cnumeendp) AS NUMERO,
-        MAX(en.cbairendp) AS BAIRRO,
-        MAX(en.ccompendp) AS COMPLEMENTO
+        DECODE(en.ctipoendp,
+               'A', 'Atendimento',
+               'D', 'Administrativo',
+               'R', 'Residencial',
+               'F', 'Faturamento',
+               'C', 'Comercial',
+               'P', 'Correspondência',
+               'N', 'Nota fiscal',
+               'M', 'Atendimento domiciliar') AS TIPO_ENDERECO,
+        en.ccidaendp  AS CIDADE,
+        en.cestaendp  AS ESTADO,
+        en.nnumetlogr,
+        en.cendeendp  AS ENDERECO,
+        en.cnumeendp  AS NUMERO,
+        en.cbairendp  AS BAIRRO,
+        en.ccompendp  AS COMPLEMENTO
     FROM hssendp en
     WHERE en.cstatendp = 'A'
-      AND (en.ctipoendp = 'A' OR en.cprinendp = 'S')
-      AND en.nnumepess IN (SELECT nnumepess FROM vw_prestadores_base)
-    GROUP BY en.nnumepess
+      AND en.ctipoendp = 'A'
+      AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepess = en.nnumepess)
+    UNION ALL
+    SELECT
+        en.nnumepess,
+        DECODE(en.ctipoendp,
+               'A', 'Atendimento',
+               'D', 'Administrativo',
+               'R', 'Residencial',
+               'F', 'Faturamento',
+               'C', 'Comercial',
+               'P', 'Correspondência',
+               'N', 'Nota fiscal',
+               'M', 'Atendimento domiciliar') AS TIPO_ENDERECO,
+        en.ccidaendp  AS CIDADE,
+        en.cestaendp  AS ESTADO,
+        en.nnumetlogr,
+        en.cendeendp  AS ENDERECO,
+        en.cnumeendp  AS NUMERO,
+        en.cbairendp  AS BAIRRO,
+        en.ccompendp  AS COMPLEMENTO
+    FROM hssendp en
+    WHERE en.cstatendp = 'A'
+      AND en.cprinendp = 'S'
+      AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepess = en.nnumepess)
+      AND NOT EXISTS (
+        SELECT 1 FROM hssendp en2
+        WHERE en2.nnumepess = en.nnumepess
+          AND en2.ctipoendp = 'A'
+          AND en2.cstatendp = 'A'
+    )
 ),
 
 -- 5. ESPECIALIDADES AGREGADAS
@@ -145,7 +175,7 @@ FROM (
     e.cnomeespec
     FROM hssespre ep
     JOIN hssespec e ON e.nnumeespec = ep.nnumeespec
-    WHERE ep.nnumepres IN (SELECT nnumepres FROM vw_prestadores_base)
+    WHERE EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepres = ep.nnumepres)
     )
 GROUP BY nnumepres
     ),
@@ -158,7 +188,7 @@ SELECT
     MAX(cprinemapr) AS EMAIL7_SN_PRINC,
     MAX(cemaiemapr) AS EMAIL7
 FROM hssemapr
-WHERE nnumepres IN (SELECT nnumepres FROM vw_prestadores_base)
+WHERE EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepres = hssemapr.nnumepres)
 GROUP BY nnumepres
     ),
     vw_email_pessoa AS (
@@ -168,7 +198,7 @@ SELECT
 FROM hssemap
 WHERE cprinemap = 'S'
   AND cstatemap = 'A'
-  AND nnumepess IN (SELECT nnumepess FROM vw_prestadores_base)
+  AND EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepess = hssemap.nnumepess)
 GROUP BY nnumepess
     ),
 
@@ -202,40 +232,61 @@ SELECT /*+ MATERIALIZE */ DISTINCT
     ) AS situacao_corpo_clinico,
     retorna_nome_grupo_prestador(p.cgruppres) AS grupo_corpo_clinico,
     cp.cdescclapr AS classificacao_corpo_clinico,
-    en.ccidaendp AS cidade_corpo_clinico,
-    en.cestaendp AS estado_corpo_clinico,
+    en.ccidaendp  AS cidade_corpo_clinico,
+    en.cestaendp  AS estado_corpo_clinico,
     tl.cdesctlogr AS logradouro_corpo_clinico,
-    en.cendeendp AS endereco_corpo_clinico,
-    en.cnumeendp AS numero_corpo_clinico,
-    en.cbairendp AS bairro_corpo_clinico,
-    en.ccompendp AS complemento_corpo_clinico,
+    en.cendeendp  AS endereco_corpo_clinico,
+    en.cnumeendp  AS numero_corpo_clinico,
+    en.cbairendp  AS bairro_corpo_clinico,
+    en.ccompendp  AS complemento_corpo_clinico,
     (fo.cddd_fonp || ' ' || fo.cfonefonp) AS fone_corpo_clinico,
-    e.nnumeespec AS id_espec_corpo_clinico,
-    e.cnomeespec AS especialidade_corpo_clinico,
+    e.nnumeespec  AS id_espec_corpo_clinico,
+    e.cnomeespec  AS especialidade_corpo_clinico,
     es.cpublespre AS publica_corpo_clinico,
-    c.cstatcclin AS status_corpo_clinico
+    c.cstatcclin  AS status_corpo_clinico
 FROM hsscclin c
     JOIN finpres p    ON p.nnumepres = c.nnumepres
     JOIN hssespre es  ON es.nnumepres = c.nnumepres
     JOIN hssespec e   ON e.nnumeespec = es.nnumeespec
     LEFT JOIN hssclapr cp ON cp.nnumeclapr = p.nnumeclapr
-    LEFT JOIN hssendp en  ON en.nnumepess = p.nnumepess
-    AND en.cstatendp = 'A'
-    AND (en.ctipoendp = 'A' OR en.cprinendp = 'S')
+    -- Endereço do corpo clínico: mesma lógica de prioridade
+    LEFT JOIN (
+    SELECT nnumepess, ctipoendp, ccidaendp, cestaendp, nnumetlogr,
+    cendeendp, cnumeendp, cbairendp, ccompendp
+    FROM hssendp
+    WHERE cstatendp = 'A'
+    AND ctipoendp = 'A'
+    UNION ALL
+    SELECT nnumepess, ctipoendp, ccidaendp, cestaendp, nnumetlogr,
+    cendeendp, cnumeendp, cbairendp, ccompendp
+    FROM hssendp h2
+    WHERE h2.cstatendp = 'A'
+    AND h2.cprinendp = 'S'
+    AND NOT EXISTS (
+    SELECT 1 FROM hssendp h3
+    WHERE h3.nnumepess = h2.nnumepess
+    AND h3.ctipoendp = 'A'
+    AND h3.cstatendp = 'A'
+    )
+    ) en ON en.nnumepess = p.nnumepess
     LEFT JOIN hsstlogr tl ON tl.nnumetlogr = en.nnumetlogr
     LEFT JOIN hssfonp fo  ON fo.nnumepess = p.nnumepess
     AND fo.cstatfonp = 'A'
     AND fo.cprinfonp = 'S'
 WHERE NVL(c.cstatcclin, 'I') = 'A'
-  AND c.nhosppres IN (SELECT nnumepres FROM vw_prestadores_base WHERE cpesspres = 'J')
+  AND EXISTS (
+    SELECT 1 FROM vw_prestadores_base pb
+    WHERE pb.nnumepres = c.nhosppres
+  AND pb.cpesspres = 'J'
+    )
     )
 
 -- ==========================================================================
--- QUERY PRINCIPAL: EXPLODIDA (prestador x rede x corpo clinico)
+-- QUERY PRINCIPAL
 -- ==========================================================================
 SELECT
     op.nome_operadora                           AS OPERADORA,
-    pb.cnomeredea                                AS REDE_ATENDIMENTO,
+    pb.cnomeredea                               AS REDE_ATENDIMENTO,
     pb.ccodipres                                AS CODIGO_PRESTADOR,
     pb.cpesspres                                AS NATUREZA,
     pb.cnpj_cpf                                 AS CNPJ_CPF,
@@ -302,3 +353,19 @@ FROM vw_prestadores_base pb
          LEFT JOIN vw_guia_local_6m gl6 ON gl6.nlocapres = pb.nnumepres
          LEFT JOIN vw_email_pessoa em   ON em.nnumepess = pb.nnumepess
 ORDER BY CODIGO_PRESTADOR, REDE_ATENDIMENTO, ESPECIALIDADES, COD_CORPO_CLINICO
+
+
+-- ============================================================
+-- FILTROS
+-- ============================================================
+
+-- REDE
+SELECT nnumeredea, cnomeredea
+FROM hssredea
+ORDER BY 2
+
+-- GRUPO_PRESTADOR
+SELECT d.cvalodomin, d.cdispdomin
+FROM hssdomin d
+WHERE d.ctipodomin = 'GRUPO_PRESTADOR'
+ORDER BY 2
