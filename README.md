@@ -18,3 +18,15 @@ O banco do Solus é **Oracle**, então as consultas usam a sintaxe dele (`DECODE
 - **Parâmetros:** use variáveis de ligação (`:NOME`) para os filtros que o usuário informa no Solus.
 - **Filtros de tela:** depois da query principal, um bloco `--FILTRO--<PARÂMETRO>` traz a consulta que alimenta a lista de opções daquele parâmetro. Exemplo: `--FILTRO--GRUPO` seguido do `SELECT` em `hssdomin` com os grupos de prestador.
 - **Comentários:** explique as regras de negócio que não são óbvias (prioridades, fallbacks, exclusões) direto no SQL.
+
+## Codificação e quebras de linha
+
+Todos os arquivos devem estar em **UTF-8** e usar **CRLF** na cópia de trabalho.
+
+- **`.editorconfig`:** faz o editor salvar em UTF-8 com CRLF. O JetBrains lê o arquivo sozinho; no VS Code, instale a extensão *EditorConfig for VS Code*.
+- **`.gitattributes`:** cuida das quebras de linha. O git guarda LF no repositório e entrega CRLF no checkout, qualquer que seja o `core.autocrlf` de quem clonar.
+- **Codificação:** o git não converte a codificação. Se um `.sql` vier de outro lugar (exportado do Solus, copiado de outro sistema), confira se está em UTF-8 antes do commit. Arquivos em ISO-8859-1/Windows-1252 deixam os acentos quebrados (`�`) no GitHub. Para converter:
+
+  ```sh
+  iconv -f ISO-8859-1 -t UTF-8 "arquivo.sql" > tmp.sql && mv tmp.sql "arquivo.sql"
+  ```
