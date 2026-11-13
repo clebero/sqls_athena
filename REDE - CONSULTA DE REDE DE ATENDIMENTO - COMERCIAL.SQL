@@ -42,17 +42,18 @@ FROM (
              f.cestapres AS uf,
              icf_fone_pessoa(f.nnumepess) AS fone,
              sp.nnumeplan AS id_plano,
-             rp.nnumeredea AS id_rede
+             rp.nnumeredea AS id_rede,
+             f.nnumepres AS id_prestador
          FROM solus.finpres f
                   JOIN hssprede pr ON pr.nnumepres = f.nnumepres
                   JOIN hssespre es ON es.nnumepres = f.nnumepres
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE f.ccredpres = 'S'
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE f.ccredpres   = 'S'
            AND pr.dfinaprede IS NULL
            AND es.cpublespre = 'S'
            AND pr.cpwebprede = 'S'
-           AND f.cpesspres = 'F'
+           AND f.cpesspres   = 'F'
            AND pr.nnumeespec IS NULL
 
          UNION ALL
@@ -65,19 +66,19 @@ FROM (
              es.nnumeespec, TO_CHAR(retorna_nome_especialidade(es.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              f.cendepres, f.cnendpres, f.ccomppres, f.cbairpres, f.ccidapres, f.cestapres,
-             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea, f.nnumepres
          FROM solus.finpres f
                   JOIN hssprede pr ON pr.nnumepres = f.nnumepres
                   JOIN hssespre es ON es.nnumepres = f.nnumepres
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE f.ccredpres = 'S'
-           AND pr.dfinaprede IS NULL
-           AND es.cpublespre = 'S'
-           AND es.nnumeepres IS NULL
-           AND pr.cpwebprede = 'S'
-           AND f.cpesspres = 'F'
-           AND pr.nnumeespec IS NOT NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE f.ccredpres     = 'S'
+           AND pr.dfinaprede  IS NULL
+           AND es.cpublespre   = 'S'
+           AND es.nnumeepres  IS NULL
+           AND pr.cpwebprede   = 'S'
+           AND f.cpesspres     = 'F'
+           AND pr.nnumeespec  IS NOT NULL
 
          UNION ALL
 
@@ -89,23 +90,23 @@ FROM (
              cl.nnumeespec, TO_CHAR(retorna_nome_especialidade(cl.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              f.cendepres, f.cnendpres, f.ccomppres, f.cbairpres, f.ccidapres, f.cestapres,
-             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea, cc.nnumepres
          FROM solus.finpres f
                   JOIN hsscclin cl ON cl.nhosppres = f.nnumepres
                   JOIN finpres cc  ON cl.nnumepres = cc.nnumepres
-                  JOIN hssespre es ON (es.nnumeespec = cl.nnumeespec AND es.nnumepres = f.nnumepres)
-                  JOIN hssprede pr ON pr.nnumepres = f.nnumepres
+                  JOIN hssespre es ON es.nnumeespec = cl.nnumeespec AND es.nnumepres = f.nnumepres
+                  JOIN hssprede pr ON pr.nnumepres  = f.nnumepres
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE pr.dfinaprede IS NULL
-           AND es.nnumeepres IS NULL
-           AND cl.cstatcclin = 'A'
-           AND cl.cpublcclin = 'S'
-           AND es.cpublespre = 'S'
-           AND pr.cpwebprede = 'S'
-           AND f.cgruppres <> 'E'
-           AND f.cpesspres = 'J'
-           AND pr.nnumeespec IS NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE pr.dfinaprede  IS NULL
+           AND es.nnumeepres  IS NULL
+           AND cl.cstatcclin   = 'A'
+           AND cl.cpublcclin   = 'S'
+           AND es.cpublespre   = 'S'
+           AND pr.cpwebprede   = 'S'
+           AND f.cgruppres    <> 'E'
+           AND f.cpesspres     = 'J'
+           AND pr.nnumeespec  IS NULL
 
          UNION ALL
 
@@ -117,23 +118,23 @@ FROM (
              cl.nnumeespec, TO_CHAR(retorna_nome_especialidade(cl.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              cc.cendepres, cc.cnendpres, cc.ccomppres, cc.cbairpres, cc.ccidapres, cc.cestapres,
-             icf_fone_pessoa(cc.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(cc.nnumepess), sp.nnumeplan, rp.nnumeredea, cc.nnumepres
          FROM solus.finpres f
-                  JOIN hsscclin cl ON cl.nhosppres = f.nnumepres
-                  JOIN finpres cc  ON cl.nnumepres = cc.nnumepres
-                  JOIN hssespre es ON (es.nnumeespec = cl.nnumeespec AND es.nnumepres = cc.nnumepres)
-                  JOIN hssprede pr ON pr.nnumepres = cc.nnumepres
+                  JOIN hsscclin cl ON cl.nhosppres  = f.nnumepres
+                  JOIN finpres cc  ON cl.nnumepres  = cc.nnumepres
+                  JOIN hssespre es ON es.nnumeespec = cl.nnumeespec AND es.nnumepres = cc.nnumepres
+                  JOIN hssprede pr ON pr.nnumepres  = cc.nnumepres
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE pr.dfinaprede IS NULL
-           AND es.nnumeepres IS NULL
-           AND cl.cstatcclin = 'A'
-           AND cl.cpublcclin = 'S'
-           AND es.cpublespre = 'S'
-           AND pr.cpwebprede = 'S'
-           AND f.cgruppres = 'E'
-           AND f.cpesspres = 'J'
-           AND pr.nnumeespec IS NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE pr.dfinaprede  IS NULL
+           AND es.nnumeepres  IS NULL
+           AND cl.cstatcclin   = 'A'
+           AND cl.cpublcclin   = 'S'
+           AND es.cpublespre   = 'S'
+           AND pr.cpwebprede   = 'S'
+           AND f.cgruppres     = 'E'
+           AND f.cpesspres     = 'J'
+           AND pr.nnumeespec  IS NULL
 
          UNION ALL
 
@@ -145,23 +146,25 @@ FROM (
              cl.nnumeespec, TO_CHAR(retorna_nome_especialidade(cl.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              f.cendepres, f.cnendpres, f.ccomppres, f.cbairpres, f.ccidapres, f.cestapres,
-             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea, cc.nnumepres
          FROM solus.finpres f
-                  JOIN hsscclin cl ON cl.nhosppres = f.nnumepres
-                  JOIN finpres cc  ON cl.nnumepres = cc.nnumepres
-                  JOIN hssespre es ON (es.nnumeespec = cl.nnumeespec AND es.nnumepres = f.nnumepres)
-                  JOIN hssprede pr ON (pr.nnumepres = f.nnumepres AND pr.nnumeespec = cl.nnumeespec AND pr.nnumeespec = es.nnumeespec)
+                  JOIN hsscclin cl ON cl.nhosppres  = f.nnumepres
+                  JOIN finpres cc  ON cl.nnumepres  = cc.nnumepres
+                  JOIN hssespre es ON es.nnumeespec = cl.nnumeespec AND es.nnumepres = f.nnumepres
+                  JOIN hssprede pr ON pr.nnumepres  = f.nnumepres
+             AND pr.nnumeespec = cl.nnumeespec
+             AND pr.nnumeespec = es.nnumeespec
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE pr.dfinaprede IS NULL
-           AND es.nnumeepres IS NULL
-           AND cl.cstatcclin = 'A'
-           AND cl.cpublcclin = 'S'
-           AND es.cpublespre = 'S'
-           AND pr.cpwebprede = 'S'
-           AND f.cgruppres <> 'E'
-           AND f.cpesspres = 'J'
-           AND pr.nnumeespec IS NOT NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE pr.dfinaprede  IS NULL
+           AND es.nnumeepres  IS NULL
+           AND cl.cstatcclin   = 'A'
+           AND cl.cpublcclin   = 'S'
+           AND es.cpublespre   = 'S'
+           AND pr.cpwebprede   = 'S'
+           AND f.cgruppres    <> 'E'
+           AND f.cpesspres     = 'J'
+           AND pr.nnumeespec  IS NOT NULL
 
          UNION ALL
 
@@ -173,23 +176,25 @@ FROM (
              cl.nnumeespec, TO_CHAR(retorna_nome_especialidade(cl.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              cc.cendepres, cc.cnendpres, cc.ccomppres, cc.cbairpres, cc.ccidapres, cc.cestapres,
-             icf_fone_pessoa(cc.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(cc.nnumepess), sp.nnumeplan, rp.nnumeredea, cc.nnumepres
          FROM solus.finpres f
-                  JOIN hsscclin cl ON cl.nhosppres = f.nnumepres
-                  JOIN finpres cc  ON cl.nnumepres = cc.nnumepres
-                  JOIN hssespre es ON (es.nnumeespec = cl.nnumeespec AND es.nnumepres = cc.nnumepres)
-                  JOIN hssprede pr ON (pr.nnumepres = cc.nnumepres AND pr.nnumeespec = cl.nnumeespec AND pr.nnumeespec = es.nnumeespec)
+                  JOIN hsscclin cl ON cl.nhosppres  = f.nnumepres
+                  JOIN finpres cc  ON cl.nnumepres  = cc.nnumepres
+                  JOIN hssespre es ON es.nnumeespec = cl.nnumeespec AND es.nnumepres = cc.nnumepres
+                  JOIN hssprede pr ON pr.nnumepres  = cc.nnumepres
+             AND pr.nnumeespec = cl.nnumeespec
+             AND pr.nnumeespec = es.nnumeespec
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE pr.dfinaprede IS NULL
-           AND es.nnumeepres IS NULL
-           AND cl.cstatcclin = 'A'
-           AND cl.cpublcclin = 'S'
-           AND es.cpublespre = 'S'
-           AND pr.cpwebprede = 'S'
-           AND f.cgruppres = 'E'
-           AND f.cpesspres = 'J'
-           AND pr.nnumeespec IS NOT NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE pr.dfinaprede  IS NULL
+           AND es.nnumeepres  IS NULL
+           AND cl.cstatcclin   = 'A'
+           AND cl.cpublcclin   = 'S'
+           AND es.cpublespre   = 'S'
+           AND pr.cpwebprede   = 'S'
+           AND f.cgruppres     = 'E'
+           AND f.cpesspres     = 'J'
+           AND pr.nnumeespec  IS NOT NULL
 
          UNION ALL
 
@@ -200,18 +205,18 @@ FROM (
              '', '', '', es.nnumeespec, TO_CHAR(retorna_nome_especialidade(es.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              f.cendepres, f.cnendpres, f.ccomppres, f.cbairpres, f.ccidapres, f.cestapres,
-             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea, f.nnumepres
          FROM solus.finpres f
                   JOIN hssespre es ON es.nnumepres = f.nnumepres
                   JOIN hssprede pr ON pr.nnumepres = f.nnumepres
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE pr.dfinaprede IS NULL
-           AND es.nnumeepres IS NULL
-           AND pr.cpwebprede = 'S'
-           AND es.cpublespre = 'S'
-           AND f.cpesspres = 'J'
-           AND pr.nnumeespec IS NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE pr.dfinaprede  IS NULL
+           AND es.nnumeepres  IS NULL
+           AND pr.cpwebprede   = 'S'
+           AND es.cpublespre   = 'S'
+           AND f.cpesspres     = 'J'
+           AND pr.nnumeespec  IS NULL
 
          UNION ALL
 
@@ -222,63 +227,57 @@ FROM (
              '', '', '', es.nnumeespec, TO_CHAR(retorna_nome_especialidade(es.nnumeespec)),
              (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = f.nnumetlogr),
              f.cendepres, f.cnendpres, f.ccomppres, f.cbairpres, f.ccidapres, f.cestapres,
-             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea
+             icf_fone_pessoa(f.nnumepess), sp.nnumeplan, rp.nnumeredea, f.nnumepres
          FROM solus.finpres f
-                  JOIN hssespre es ON es.nnumepres = f.nnumepres
-                  JOIN hssprede pr ON (pr.nnumepres = f.nnumepres AND pr.nnumeespec = es.nnumeespec)
+                  JOIN hssespre es ON es.nnumepres  = f.nnumepres
+                  JOIN hssprede pr ON pr.nnumepres  = f.nnumepres
+             AND pr.nnumeespec = es.nnumeespec
                   JOIN hssredpl rp ON rp.nnumeredea = pr.nnumeredea
-                  JOIN hssplan  sp ON sp.nnumeplan = rp.nnumeplan
-         WHERE pr.dfinaprede IS NULL
-           AND es.nnumeepres IS NULL
-           AND pr.cpwebprede = 'S'
-           AND es.cpublespre = 'S'
-           AND f.cpesspres = 'J'
-           AND pr.nnumeespec IS NOT NULL
+                  JOIN hssplan  sp ON sp.nnumeplan  = rp.nnumeplan
+         WHERE pr.dfinaprede  IS NULL
+           AND es.nnumeepres  IS NULL
+           AND pr.cpwebprede   = 'S'
+           AND es.cpublespre   = 'S'
+           AND f.cpesspres     = 'J'
+           AND pr.nnumeespec  IS NOT NULL
      ) v
-WHERE v.id_plano = :codigo
-  AND v.id_plano = :nome
-  AND v.id_plano = :registro
-  AND v.id_rede = :rede
-  AND v.nome_prestador = :prestador
-  AND v.idgrupo = :grupo
+WHERE v.id_plano      = :plano
+  AND v.id_rede       = :rede
+  AND v.id_prestador  = :prestador
+  AND v.idgrupo       = :grupo
+ORDER BY grupo_prestador, nome_prestador, especialidade
 
 
---FILTROS
+-- ============================================================
+-- FILTROS
+-- ============================================================
 
---CODIGO
-SELECT P.NNUMEPLAN, P.CCODIPLAN
-FROM HSSPLAN P ORDER BY 2
---NOME
-SELECT P.NNUMEPLAN, P.CDESCPLAN
-FROM HSSPLAN P ORDER BY 2
---REGISTRO
-
-SELECT P.NNUMEPLAN, P.NRGMSPLAN
-FROM HSSPLAN P WHERE P.NRGMSPLAN IS NOT NULL ORDER BY 2
-
---REDE
-SELECT distinct  P.NNUMEREDEA, P.CNOMEREDEA
-FROM HSSREDEA P, HSSPREDE PR
-WHERE P.NNUMEREDEA=PR.NNUMEREDEA
-  AND P.CSITUREDEA='A'
-  and P.CPRWEREDEA='A'
+-- PLANO
+SELECT DISTINCT pl.nnumeplan,
+                pl.ccodiplan || ' - ' || pl.cdescplan AS plano
+FROM hssplan pl
 ORDER BY 2
 
---PRESTADOR
+-- REDE
+SELECT DISTINCT r.nnumeredea, r.cnomeredea
+FROM hssredea r
+WHERE r.csituredea = 'A'
+  AND r.cprweredea = 'A'
+  AND EXISTS (
+    SELECT 1 FROM hssprede pr
+    WHERE pr.nnumeredea = r.nnumeredea
+)
+ORDER BY 2
 
-select distinct cnomepres,cnomepres
-from finpres
-where cpesspres='F'
-union all
-select distinct cfantpres,cfantpres
-from finpres
-where cpesspres='J'
-order by 1
+-- PRESTADOR
+SELECT DISTINCT f.nnumepres,
+                CASE WHEN f.cpesspres = 'F' THEN f.cnomepres ELSE f.cfantpres END AS nome
+FROM finpres f
+ORDER BY 2
 
---GRUPO
-
-select cvalodomin,cdispdomin
-from hssdomin
-where ctipodomin= 'GRUPO_PRESTADOR'
-  and cstatdomin='A'
-order by 2
+-- GRUPO
+SELECT cvalodomin, cdispdomin
+FROM hssdomin
+WHERE ctipodomin = 'GRUPO_PRESTADOR'
+  AND cstatdomin = 'A'
+ORDER BY 2
