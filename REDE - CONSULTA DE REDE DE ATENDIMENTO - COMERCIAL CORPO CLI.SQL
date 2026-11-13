@@ -1,30 +1,37 @@
 WITH
 -- Endereço com prioridade: tipo Atendimento ('A'); fallback principal quando não há tipo 'A'
+-- ROW_NUMBER garante 1 registro por pessoa quando há múltiplos endereços tipo 'A'
 vw_endereco AS (
-    SELECT en.nnumepess,
-           (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = en.nnumetlogr) AS logradouro,
-           en.cendeendp AS endereco,
-           en.cnumeendp AS numero,
-           en.ccompendp AS complemento,
-           en.cbairendp AS bairro,
-           en.ccidaendp AS cidade,
-           en.cestaendp AS uf
-    FROM hssendp en
-    WHERE en.cstatendp = 'A'
-      AND en.ctipoendp = 'A'
-    UNION ALL
-    SELECT en.nnumepess,
-           (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = en.nnumetlogr),
-           en.cendeendp, en.cnumeendp, en.ccompendp, en.cbairendp, en.ccidaendp, en.cestaendp
-    FROM hssendp en
-    WHERE en.cstatendp = 'A'
-      AND en.cprinendp = 'S'
-      AND NOT EXISTS (
-        SELECT 1 FROM hssendp en2
-        WHERE en2.nnumepess = en.nnumepess
-          AND en2.ctipoendp = 'A'
-          AND en2.cstatendp = 'A'
-    )
+    SELECT nnumepess, logradouro, endereco, numero, complemento, bairro, cidade, uf
+    FROM (
+             SELECT en.nnumepess,
+                    (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = en.nnumetlogr) AS logradouro,
+                    en.cendeendp AS endereco,
+                    en.cnumeendp AS numero,
+                    en.ccompendp AS complemento,
+                    en.cbairendp AS bairro,
+                    en.ccidaendp AS cidade,
+                    en.cestaendp AS uf,
+                    ROW_NUMBER() OVER (PARTITION BY en.nnumepess ORDER BY en.nnumetlogr) AS rn
+             FROM hssendp en
+             WHERE en.cstatendp = 'A'
+               AND en.ctipoendp = 'A'
+             UNION ALL
+             SELECT en.nnumepess,
+                    (SELECT t.cdesctlogr FROM hsstlogr t WHERE t.nnumetlogr = en.nnumetlogr),
+                    en.cendeendp, en.cnumeendp, en.ccompendp, en.cbairendp, en.ccidaendp, en.cestaendp,
+                    ROW_NUMBER() OVER (PARTITION BY en.nnumepess ORDER BY en.nnumetlogr)
+             FROM hssendp en
+             WHERE en.cstatendp = 'A'
+               AND en.cprinendp = 'S'
+               AND NOT EXISTS (
+                 SELECT 1 FROM hssendp en2
+                 WHERE en2.nnumepess = en.nnumepess
+                   AND en2.ctipoendp = 'A'
+                   AND en2.cstatendp = 'A'
+             )
+         )
+    WHERE rn = 1
 ),
 BaseRede AS (
     SELECT
