@@ -1,0 +1,5 @@
+# Normaliza como texto; no repositório fica LF, na cópia de trabalho fica CRLF
+* text=auto eol=crlf
+
+*.sql text eol=crlf
+*.md  text eol=crlf
