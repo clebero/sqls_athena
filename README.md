@@ -9,6 +9,7 @@ O banco do Solus é **Oracle**, então as consultas usam a sintaxe dele (`DECODE
 | Arquivo | Descrição | Parâmetros |
 |---|---|---|
 | `REDE - CONSULTA DE REDE DE ATENDIMENTO ANALITICO C.CLIN v2.sql` | Rede de atendimento analítica: prestadores ativos na rede com especialidades, endereço, telefone, e-mail, produção dos últimos 6 meses (valor apresentado e quantidade de guias) e o corpo clínico vinculado a cada hospital. A operadora (Humana NE/SUL/SE) vem da `hssconf`. | `:GRUPO`: grupo do prestador |
+| `REDE - CONSULTA DE REDE DE ATENDIMENTO - ANALITICO.SQL` | Rede de atendimento analítica por rede: rede, especialidade, natureza e regime de atendimento, dados do prestador, endereço, telefone, e-mails, forma de contratação, analista responsável, valor apresentado e data do último pagamento. | `:REDE`, `:grupo`, `:idprestador`, `:classificacao`, `:cidade_prestador`, `:codplan`, `:plano` |
 
 > Ao adicionar um novo `.sql`, inclua uma linha nesta tabela.
 
@@ -16,7 +17,7 @@ O banco do Solus é **Oracle**, então as consultas usam a sintaxe dele (`DECODE
 
 - **Nome do arquivo:** `MÓDULO - DESCRIÇÃO DO RELATÓRIO vN.sql` (ex.: `REDE - ...`). Quando a mudança quebrar o que já existe, aumente a versão (`v2`, `v3`...). Se não quebrar, altere o próprio arquivo, já que o histórico fica no git.
 - **Parâmetros:** use variáveis de ligação (`:NOME`) para os filtros que o usuário informa no Solus.
-- **Filtros de tela:** depois da query principal, um bloco `--FILTRO--<PARÂMETRO>` traz a consulta que alimenta a lista de opções daquele parâmetro. Exemplo: `--FILTRO--GRUPO` seguido do `SELECT` em `hssdomin` com os grupos de prestador.
+- **Filtros de tela:** depois da query principal vêm as consultas que alimentam a lista de opções de cada parâmetro. Cada uma fica sob um comentário com o nome do filtro: `--FILTRO--GRUPO` seguido do `SELECT`, ou um cabeçalho `--FILTROS` e depois `--REDE`, `--GRUPO` etc.
 - **Comentários:** explique as regras de negócio que não são óbvias (prioridades, fallbacks, exclusões) direto no SQL.
 
 ## Codificação e quebras de linha
