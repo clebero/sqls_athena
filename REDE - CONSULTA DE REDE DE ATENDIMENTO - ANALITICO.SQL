@@ -107,7 +107,7 @@ FROM   finpres f
     SELECT /*+ NO_MERGE MATERIALIZE */ l.nnumepres, SUM(l.nvalolote) AS apresentado_ultimos12m
     FROM   hsslote l
     WHERE  l.csitulote = 'F'
-      AND  l.dcomplote >= TRUNC(FIRST_DAY(ADD_MONTHS(SYSDATE, -24)))
+      AND  l.dcomplote >= TRUNC(FIRST_DAY(ADD_MONTHS(SYSDATE, -12)))
     GROUP BY l.nnumepres
 ) vl ON vl.nnumepres = f.nnumepres
            LEFT  JOIN (
