@@ -170,16 +170,13 @@ vw_especialidade AS (
         nnumepres,
         LISTAGG(cnomeespec, ' | ') WITHIN GROUP (ORDER BY cnomeespec) AS especialidades
 FROM (
-    SELECT DISTINCT
-    ep.nnumepres,
-    e.cnomeespec
+    SELECT DISTINCT ep.nnumepres, e.cnomeespec
     FROM hssespre ep
     JOIN hssespec e ON e.nnumeespec = ep.nnumeespec
     WHERE EXISTS (SELECT 1 FROM vw_prestadores_base pb WHERE pb.nnumepres = ep.nnumepres)
     )
 GROUP BY nnumepres
     ),
-
     vw_email7 AS (
 SELECT
     nnumepres,
